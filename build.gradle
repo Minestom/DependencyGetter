@@ -1,0 +1,24 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.4.10'
+}
+group = 'net.minestom'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+dependencies {
+    implementation 'org.jboss.shrinkwrap.resolver:shrinkwrap-resolver-depchain:3.1.4'
+    testImplementation(
+            'org.assertj:assertj-core:3.12.2',
+            'org.junit.jupiter:junit-jupiter-api:5.4.2'
+    )
+    testRuntime('org.junit.jupiter:junit-jupiter-engine:5.4.2')
+}
+
+test {
+    useJUnitPlatform()
+}
+compileKotlin {
+    kotlinOptions.jvmTarget = '1.8'
+}
