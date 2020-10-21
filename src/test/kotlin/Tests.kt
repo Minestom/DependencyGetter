@@ -37,7 +37,7 @@ class Tests {
         assertEquals("com.google.guava", resolved.group)
         assertEquals("guava", resolved.name)
         assertEquals("30.0-jre", resolved.version)
-        assertEquals("https://repo1.maven.org/maven2/com/google/guava/guava/30.0-jre/guava-30.0-jre.jar", resolved.contentsLocation.toExternalForm())
+        assertEquals(File(targetFolder, "com/google/guava/guava/30.0-jre/guava-30.0-jre.jar").toURI().toURL().toExternalForm(), resolved.contentsLocation.toExternalForm())
     }
 
     @Test

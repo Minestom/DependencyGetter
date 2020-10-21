@@ -2,11 +2,21 @@ package net.minestom.dependencies.maven
 
 import net.minestom.dependencies.DependencyResolver
 import net.minestom.dependencies.ResolvedDependency
+import net.minestom.dependencies.UnresolvedDependencyException
+import org.jboss.shrinkwrap.resolver.api.NoResolvedResultException
 import org.jboss.shrinkwrap.resolver.api.maven.Maven
+import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact
 import java.io.File
+import java.util.logging.LogManager
 
 
 class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver {
+
+    companion object {
+        init {
+            LogManager.getLogManager().readConfiguration(javaClass.getResourceAsStream("/logging.properties"))
+        }
+    }
 
     override fun resolve(id: String, targetFolder: File): ResolvedDependency {
         val tmpFolder = File(targetFolder, ".tmp")
@@ -38,13 +48,23 @@ class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver
     </activeProfiles>
 </settings>
             """)
-            val resolver = Maven.configureResolver().fromFile(settingsFile)
-            for(art in resolver.resolve(id).withTransitivity().asResolvedArtifact()) {
-                println("-> ${art.coordinate} ${art.asFile().absolutePath}")
+            val hasMavenCentral = repositories.any { it.url.sameFile(MavenRepository.Central.url) }
+            val resolver = Maven.configureResolver().withMavenCentralRepo(hasMavenCentral).fromFile(settingsFile)
+            val artifacts = resolver.resolve(id).withTransitivity().asResolvedArtifact()
+            val dependencies = mutableListOf<ResolvedDependency>()
+            for(dep in artifacts.drop(1)) {
+                dependencies += convertToDependency(dep)
             }
-            TODO()
+            val coords = artifacts[0].coordinate
+            return ResolvedDependency(coords.groupId, coords.artifactId, coords.version, artifacts[0].asFile().toURI().toURL(), dependencies)
+        } catch(e: NoResolvedResultException) {
+            throw UnresolvedDependencyException("Failed to resolve $id", e)
         } finally {
             tmpFolder.deleteRecursively()
         }
+    }
+
+    private fun convertToDependency(artifact: MavenResolvedArtifact): ResolvedDependency {
+        return ResolvedDependency(artifact.coordinate.groupId, artifact.coordinate.artifactId, artifact.coordinate.version, artifact.asFile().toURI().toURL(), emptyList())
     }
 }
