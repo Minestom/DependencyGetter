@@ -2,6 +2,11 @@ package net.minestom.dependencies.maven
 
 import java.net.URL
 
+/**
+ * Represents a maven repository by its name and URL.
+ * Equality/hashCode/toString is based only on the URL.
+ * The name is only used as an id for the maven resolver, and shows up in resolution errors.
+ */
 class MavenRepository(val name: String, url: String) {
     companion object {
         val Central = MavenRepository("Central", "https://repo1.maven.org/maven2/")
@@ -12,16 +17,22 @@ class MavenRepository(val name: String, url: String) {
 
     val url = URL(if(url.endsWith("/")) url else "$url/")
 
-    // TODO: sub-dependencies
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
 
-    fun expand(artifactGroup: String, artifactID: String, version: String, fileExtension: String): URL {
-        return URL(
-            "${url.toExternalForm()}${
-                artifactGroup.replace(
-                    ".",
-                    "/"
-                )
-            }/$artifactID/$version/$artifactID-$version.$fileExtension"
-        )
+        other as MavenRepository
+
+        if (url != other.url) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return url.hashCode()
+    }
+
+    override fun toString(): String {
+        return url.toExternalForm()
     }
 }
