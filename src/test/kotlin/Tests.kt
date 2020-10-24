@@ -1,3 +1,6 @@
+import net.minestom.dependencies.DependencyGetter
+import net.minestom.dependencies.DependencyResolver
+import net.minestom.dependencies.ResolvedDependency
 import net.minestom.dependencies.UnresolvedDependencyException
 import net.minestom.dependencies.maven.MavenRepository
 import net.minestom.dependencies.maven.MavenResolver
@@ -65,6 +68,30 @@ class Tests {
             )
             val resolver = MavenResolver(repositories)
             val resolved = resolver.resolve("com.google.guava:guava:30.0-jre", targetFolder)
+        }
+    }
+
+    @Test
+    fun helloDependency() {
+        class MyResolver: DependencyResolver {
+            override fun resolve(id: String, targetFolder: File): ResolvedDependency {
+                throw UnresolvedDependencyException(id)
+            }
+        }
+
+        val dependencyGetter = DependencyGetter()
+            .addResolver(MyResolver())
+            .addMavenResolver(repositories = listOf(
+                MavenRepository.Jitpack,
+                MavenRepository.Central,
+                MavenRepository.JCenter,
+                MavenRepository("Minecraft Libs", "https://libraries.minecraft.net"),
+                MavenRepository("Sponge", "https://repo.spongepowered.org/maven"),
+            ))
+        val resolved = dependencyGetter.get("com.github.Minestom:Minestom:32d13dcbd1", targetFolder)
+        resolved.printTree()
+        assertThrows(UnresolvedDependencyException::class.java) {
+            dependencyGetter.get("somethingthatdoesnotexist.xyz", targetFolder)
         }
     }
 }

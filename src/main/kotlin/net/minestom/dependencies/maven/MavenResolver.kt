@@ -3,6 +3,7 @@ package net.minestom.dependencies.maven
 import net.minestom.dependencies.DependencyResolver
 import net.minestom.dependencies.ResolvedDependency
 import net.minestom.dependencies.UnresolvedDependencyException
+import org.jboss.shrinkwrap.resolver.api.CoordinateParseException
 import org.jboss.shrinkwrap.resolver.api.NoResolvedResultException
 import org.jboss.shrinkwrap.resolver.api.maven.Maven
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact
@@ -13,16 +14,12 @@ import java.util.logging.LogManager
  * Resolves maven dependencies.
  * *Does not use the local maven repository, but uses the folder passed as an argument in resolve(String, File)*
  *
+ * Creates a temporary folder `.tmp` inside the target folder to store a Maven `settings.xml` file to specify
+ * a local repository and remote repositories.
+ *
  * @param repositories list of repositories to use to resolve artifacts
  */
 class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver {
-
-    companion object {
-        init {
-            // prevents ShrinkWrap's resolver's verbose output when trying to find which repository holds an artifact
-            LogManager.getLogManager().readConfiguration(javaClass.getResourceAsStream("/logging.properties"))
-        }
-    }
 
     /**
      * Resolves and downloads maven artifacts related to the given id.
@@ -69,6 +66,8 @@ class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver
             }
             val coords = artifacts[0].coordinate
             return ResolvedDependency(coords.groupId, coords.artifactId, coords.version, artifacts[0].asFile().toURI().toURL(), dependencies)
+        } catch(e: CoordinateParseException) {
+            throw UnresolvedDependencyException("Failed to resolve $id (not a Maven coordinate)", e)
         } catch(e: NoResolvedResultException) {
             throw UnresolvedDependencyException("Failed to resolve $id", e)
         } finally {
@@ -78,5 +77,9 @@ class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver
 
     private fun convertToDependency(artifact: MavenResolvedArtifact): ResolvedDependency {
         return ResolvedDependency(artifact.coordinate.groupId, artifact.coordinate.artifactId, artifact.coordinate.version, artifact.asFile().toURI().toURL(), emptyList())
+    }
+
+    override fun toString(): String {
+        return "MavenResolver[${repositories.joinToString { "${it.name} ${it.url.toExternalForm()}" }}]"
     }
 }
