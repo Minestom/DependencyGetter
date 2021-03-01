@@ -2,12 +2,12 @@ package net.minestom.dependencies
 
 import net.minestom.dependencies.maven.MavenRepository
 import net.minestom.dependencies.maven.MavenResolver
+import net.minestom.dependencies.model.ResolvedDependency
 import java.io.File
 
 class DependencyGetter {
 
     private val resolverList = mutableListOf<DependencyResolver>()
-    val resolvers: List<DependencyResolver> get()= resolvers
 
     fun addResolver(resolver: DependencyResolver): DependencyGetter {
         resolverList += resolver
@@ -20,7 +20,7 @@ class DependencyGetter {
     fun addMavenResolver(repositories: List<MavenRepository>) = addResolver(MavenResolver(repositories))
 
     fun get(id: String, targetFolder: File): ResolvedDependency {
-        for(resolver in resolverList) {
+        resolverList.forEach { resolver ->
             try {
                 return resolver.resolve(id, targetFolder)
             } catch (e: UnresolvedDependencyException) {

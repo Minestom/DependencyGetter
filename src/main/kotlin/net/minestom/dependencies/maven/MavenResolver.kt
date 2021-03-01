@@ -1,14 +1,13 @@
 package net.minestom.dependencies.maven
 
 import net.minestom.dependencies.DependencyResolver
-import net.minestom.dependencies.ResolvedDependency
 import net.minestom.dependencies.UnresolvedDependencyException
+import net.minestom.dependencies.model.ResolvedDependency
 import org.jboss.shrinkwrap.resolver.api.CoordinateParseException
 import org.jboss.shrinkwrap.resolver.api.NoResolvedResultException
 import org.jboss.shrinkwrap.resolver.api.maven.Maven
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact
 import java.io.File
-import java.util.logging.LogManager
 
 /**
  * Resolves maven dependencies.
@@ -19,7 +18,7 @@ import java.util.logging.LogManager
  *
  * @param repositories list of repositories to use to resolve artifacts
  */
-class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver {
+class MavenResolver(private val repositories: List<MavenRepository>): DependencyResolver {
 
     /**
      * Resolves and downloads maven artifacts related to the given id.
