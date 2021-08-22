@@ -1,12 +1,18 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.10'
+
+    id 'maven-publish'
+    id 'signing'
+    id 'io.github.gradle-nexus.publish-plugin' version '1.1.0'
 }
+
 group = 'net.minestom'
-version = '1.0.0'
+version = '1.0.1'
 
 repositories {
     mavenCentral()
 }
+
 dependencies {
     implementation 'org.jboss.shrinkwrap.resolver:shrinkwrap-resolver-depchain:3.1.4'
     testImplementation(
@@ -19,6 +25,81 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
 compileKotlin {
     kotlinOptions.jvmTarget = '1.8'
+}
+
+task javadocJar(type: Jar) {
+    from javadoc
+    classifier = 'javadoc'
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives sourcesJar, javadocJar
+}
+
+// Publishing
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            from project.components.java
+            artifact javadocJar
+            artifact sourcesJar
+
+            pom {
+                name = 'dependencygetter'
+                description = 'Abstraction layer over dependencies. Made with Minestom extensions in mind.'
+                url = 'https://github.com/Minestom/DependencyGetter'
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://github.com/Minestom/DependencyGetter/blob/master/LICENSE.md'
+                    }
+                }
+
+                scm {
+                    connection = 'scm:git:github.com/Minestom/DependencyGetter.git'
+                    developerConnection = 'scm:git:ssh://github.com/Minestom/DependencyGetter.git'
+                    url = 'https://github.com/Minestom/DependencyGetter/tree/master'
+                }
+
+                developers {
+                    developer {
+                        id = 'minestom'
+                        name = 'Minestom Contributors'
+                        email = 'contact@minestom.net'
+                    }
+                }
+            }
+        }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl = uri("https://s01.oss.sonatype.org/service/local/")
+            snapshotRepositoryUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+
+            username = System.getenv("sonatypeUsername") ?: hasProperty("sonatypeUsername") ? sonatypeUsername : ''
+            password = System.getenv("sonatypePassword") ?: hasProperty("sonatypePassword") ? sonatypePassword : ''
+        }
+    }
+}
+
+// Signing
+
+signing {
+    if (System.env['CI'] != null) {
+        def signingKey = System.env['SIGNING_KEY']
+        def signingPassword = System.env['SIGNING_PASSWORD']
+        useInMemoryPgpKeys(signingKey, signingPassword)
+    }
+    sign publishing.publications
 }
