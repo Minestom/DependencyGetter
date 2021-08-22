@@ -73,7 +73,7 @@ publishing {
                     developer {
                         id = 'minestom'
                         name = 'Minestom Contributors'
-                        email = 'communications@minestom.net'
+                        email = 'contact@minestom.net'
                     }
                 }
             }
