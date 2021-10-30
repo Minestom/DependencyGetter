@@ -60,10 +60,7 @@ class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver
             val hasMavenCentral = repositories.any { it.url.sameFile(MavenRepository.Central.url) }
             val resolver = Maven.configureResolver().withMavenCentralRepo(hasMavenCentral).fromFile(settingsFile.toFile())
             val artifacts = resolver.resolve(id).withTransitivity().asResolvedArtifact()
-            val dependencies = mutableListOf<ResolvedDependency>()
-            for(dep in artifacts.drop(1)) { // [0] is the 'root' because we always resolve one artifact at once
-                dependencies += convertToDependency(dep)
-            }
+            val dependencies = artifacts.drop(1).map(::convertToDependency)
             val coords = artifacts[0].coordinate
             return ResolvedDependency(coords.groupId, coords.artifactId, coords.version, artifacts[0].asFile().toURI().toURL(), dependencies)
         } catch(e: CoordinateParseException) {
