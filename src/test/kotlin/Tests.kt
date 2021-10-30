@@ -1,30 +1,30 @@
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.AnnotationSpec
+import io.kotest.matchers.shouldBe
 import net.minestom.dependencies.DependencyGetter
 import net.minestom.dependencies.DependencyResolver
 import net.minestom.dependencies.ResolvedDependency
 import net.minestom.dependencies.UnresolvedDependencyException
 import net.minestom.dependencies.maven.MavenRepository
 import net.minestom.dependencies.maven.MavenResolver
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
 
-class Tests {
+class Tests : AnnotationSpec() {
 
     companion object {
-        private val targetFolder = File(".", "test_output/")
+        private val targetFolder = Path.of(".", "test_output/")
 
         @BeforeAll
         @JvmStatic
         fun init() {
-            targetFolder.mkdirs()
+            Files.createDirectories(targetFolder)
         }
 
         @AfterAll
         @JvmStatic
         fun cleanup() {
-            targetFolder.deleteRecursively()
+            Files.walk(targetFolder).sorted(Comparator.reverseOrder()).forEach(Files::delete)
         }
 
     }
@@ -37,10 +37,10 @@ class Tests {
         val resolver = MavenResolver(repositories)
         val resolved = resolver.resolve("com.google.guava:guava:30.0-jre", targetFolder)
         resolved.printTree()
-        assertEquals("com.google.guava", resolved.group)
-        assertEquals("guava", resolved.name)
-        assertEquals("30.0-jre", resolved.version)
-        assertEquals(File(targetFolder, "com/google/guava/guava/30.0-jre/guava-30.0-jre.jar").toURI().toURL().toExternalForm(), resolved.contentsLocation.toExternalForm())
+        resolved.group shouldBe "com.google.guava"
+        resolved.name shouldBe "guava"
+        resolved.version shouldBe "30.0-jre"
+        resolved.contentsLocation.toExternalForm() shouldBe targetFolder.resolve( "com/google/guava/guava/30.0-jre/guava-30.0-jre.jar").toUri().toURL().toExternalForm()
     }
 
     @Test
@@ -55,26 +55,26 @@ class Tests {
         val resolver = MavenResolver(repositories)
         val resolved = resolver.resolve("com.github.Minestom:Minestom:32d13dcbd1", targetFolder)
         resolved.printTree()
-        assertEquals("com.github.Minestom", resolved.group)
-        assertEquals("Minestom", resolved.name)
-        assertEquals("32d13dcbd1", resolved.version)
+        resolved.group shouldBe "com.github.Minestom"
+        resolved.name shouldBe "Minestom"
+        resolved.version shouldBe "32d13dcbd1"
     }
 
     @Test
     fun throwIfNotFound() {
-        assertThrows(UnresolvedDependencyException::class.java) {
+        shouldThrow<UnresolvedDependencyException> {
             val repositories = listOf(
                 MavenRepository.Jitpack,
             )
             val resolver = MavenResolver(repositories)
-            val resolved = resolver.resolve("com.google.guava:guava:30.0-jre", targetFolder)
+            resolver.resolve("com.google.guava:guava:30.0-jre", targetFolder)
         }
     }
 
     @Test
     fun helloDependency() {
         class MyResolver: DependencyResolver {
-            override fun resolve(id: String, targetFolder: File): ResolvedDependency {
+            override fun resolve(id: String, targetFolder: Path): ResolvedDependency {
                 throw UnresolvedDependencyException(id)
             }
         }
@@ -90,7 +90,7 @@ class Tests {
             ))
         val resolved = dependencyGetter.get("com.github.Minestom:Minestom:32d13dcbd1", targetFolder)
         resolved.printTree()
-        assertThrows(UnresolvedDependencyException::class.java) {
+        shouldThrow<UnresolvedDependencyException> {
             dependencyGetter.get("somethingthatdoesnotexist.xyz", targetFolder)
         }
     }

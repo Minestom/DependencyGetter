@@ -7,8 +7,8 @@ import org.jboss.shrinkwrap.resolver.api.CoordinateParseException
 import org.jboss.shrinkwrap.resolver.api.NoResolvedResultException
 import org.jboss.shrinkwrap.resolver.api.maven.Maven
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact
-import java.io.File
-import java.util.logging.LogManager
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Resolves maven dependencies.
@@ -24,12 +24,12 @@ class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver
     /**
      * Resolves and downloads maven artifacts related to the given id.
      */
-    override fun resolve(id: String, targetFolder: File): ResolvedDependency {
-        val tmpFolder = File(targetFolder, ".tmp")
+    override fun resolve(id: String, targetFolder: Path): ResolvedDependency {
+        val tmpFolder = targetFolder.resolve(".tmp")
         try {
             // create a temporary settings file to change the local maven repository and remote repositories
-            tmpFolder.mkdirs()
-            val settingsFile = File(tmpFolder, "settings.xml")
+            Files.createDirectories(tmpFolder)
+            val settingsFile = tmpFolder.resolve("settings.xml")
             val repoList =
                 (repositories.joinToString("") { repo -> """
                 <repository>
@@ -40,25 +40,25 @@ class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver
                 </repository>
             """ })
             // create the temporary settings.xml file
-            settingsFile.writeText("""
-<settings xmlns="http://maven.apache.org/SETTINGS/1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
-    <localRepository>${targetFolder.absolutePath}</localRepository>
-    <profiles>
-        <profile>
-            <id>dependency-getter-auto</id>
-            <repositories>
-            $repoList
-            </repositories>
-        </profile>
-    </profiles>
-    <activeProfiles>
-        <activeProfile>dependency-getter-auto</activeProfile>
-    </activeProfiles>
-</settings>
-            """)
+            Files.writeString(settingsFile, """
+                <settings xmlns="http://maven.apache.org/SETTINGS/1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
+                    <localRepository>${targetFolder.toAbsolutePath()}</localRepository>
+                    <profiles>
+                        <profile>
+                            <id>dependency-getter-auto</id>
+                            <repositories>
+                            $repoList
+                            </repositories>
+                        </profile>
+                    </profiles>
+                    <activeProfiles>
+                        <activeProfile>dependency-getter-auto</activeProfile>
+                    </activeProfiles>
+                </settings>
+            """.trimIndent())
             // ShrinkWrap Resolver either always uses Central, or never, even if it is in the remote repositories
             val hasMavenCentral = repositories.any { it.url.sameFile(MavenRepository.Central.url) }
-            val resolver = Maven.configureResolver().withMavenCentralRepo(hasMavenCentral).fromFile(settingsFile)
+            val resolver = Maven.configureResolver().withMavenCentralRepo(hasMavenCentral).fromFile(settingsFile.toFile())
             val artifacts = resolver.resolve(id).withTransitivity().asResolvedArtifact()
             val dependencies = mutableListOf<ResolvedDependency>()
             for(dep in artifacts.drop(1)) { // [0] is the 'root' because we always resolve one artifact at once
@@ -71,7 +71,7 @@ class MavenResolver(val repositories: List<MavenRepository>): DependencyResolver
         } catch(e: NoResolvedResultException) {
             throw UnresolvedDependencyException("Failed to resolve $id", e)
         } finally {
-            tmpFolder.deleteRecursively() // ensure the temporary settings.xml is actually temporary
+            Files.walk(tmpFolder).sorted(Comparator.reverseOrder()).forEach(Files::delete) // ensure the temporary settings.xml is actually temporary
         }
     }
 

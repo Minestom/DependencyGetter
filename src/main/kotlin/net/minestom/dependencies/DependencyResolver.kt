@@ -1,7 +1,7 @@
 package net.minestom.dependencies
 
-import java.io.File
 import java.net.URL
+import java.nio.file.Path
 import kotlin.jvm.Throws
 
 /**
@@ -15,7 +15,7 @@ interface DependencyResolver {
      * @throws UnresolvedDependencyException if the dependency could not be resolved via this resolver
      */
     @Throws(UnresolvedDependencyException::class)
-    fun resolve(id: String, targetFolder: File): ResolvedDependency
+    fun resolve(id: String, targetFolder: Path): ResolvedDependency
 }
 
 /**
@@ -24,11 +24,12 @@ interface DependencyResolver {
  *
  * The contentsLocation URL represents the location of the dependency, on local storage.
  */
-data class ResolvedDependency(val group: String, val name: String, val version: String, val contentsLocation: URL, val subdependencies: List<ResolvedDependency>) {
+data class ResolvedDependency(
+    val group: String, val name: String, val version: String,
+    val contentsLocation: URL, val subdependencies: List<ResolvedDependency>
+) {
     fun printTree(indent: String = "") {
         println("$indent- $group:$name:$version ($contentsLocation)")
-        for (dep in subdependencies) {
-            dep.printTree("$indent  ")
-        }
+        subdependencies.forEach { it.printTree("$indent  ") }
     }
 }
