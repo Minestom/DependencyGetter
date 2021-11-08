@@ -17,7 +17,7 @@ dependencies {
     implementation(kotlin("stdlib", "1.5.0"))
 
     // Add shrinkwrap resolver
-    implementation("org.jboss.shrinkwrap.resolver:shrinkwrap-resolver-depchain:3.1.4")
+    implementation(platform("org.jboss.shrinkwrap.resolver:shrinkwrap-resolver-depchain:3.1.4"))
 
     // Use the kotlin test library
     testImplementation("io.kotest:kotest-assertions-core:4.6.3")
